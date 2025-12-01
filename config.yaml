@@ -1,0 +1,30 @@
+# config.yaml
+security:
+  mfa:
+    required: true
+    backup_codes: 10
+  encryption:
+    algorithm: aes-256-gcm
+    key_rotation_days: 30
+  logging:
+    level: INFO
+    retention_days: 365
+    audit_log: true
+  
+  threat_intelligence:
+    update_interval: 3600  # seconds
+    sources:
+      - virustotal
+      - abuseipdb
+      - alienvault
+      - emerging_threats
+  
+  detection:
+    anomaly_threshold: 0.7
+    behavioral_baseline_days: 30
+    kill_chain_analysis: true
+    
+  network:
+    monitoring_interfaces: ["eth0", "wlan0"]
+    promiscuous_mode: true
+    packet_buffer_size: 65535
