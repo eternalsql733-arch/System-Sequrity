@@ -906,10 +906,10 @@ Based on Security Monitoring System (https://github.com/ваш-username/security
 bash
 
 # 1. Клонируйте репозиторий
-git clone https://github.com/ваш-username/security-system.git
+git clone https://github.com/eternalsql733-arch/System-Sequrity.git
 
 # 2. Установите зависимости
-cd security-system
+cd System-Sequrity
 pip install -r requirements.txt
 
 # 3. Запустите систему
