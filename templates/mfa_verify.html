@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Подтверждение MFA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .user-info {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 18px;
+        }
+        
+        .instructions {
+            background: #f0f8ff;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+            text-align: left;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+        }
+        
+        .mfa-input {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .mfa-digit {
+            width: 50px;
+            height: 60px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            background: #f8f9fa;
+        }
+        
+        .mfa-digit:focus {
+            outline: none;
+            border-color: #007bff;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .help-text {
+            margin-top: 20px;
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .back-link {
+            display: block;
+            margin-top: 20px;
+            color: #666;
+            text-decoration: none;
+        }
+        
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Двухфакторная аутентификация</h1>
+        
+        <div class="user-info">
+            Пользователь: <strong>{{ username }}</strong>
+        </div>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="instructions">
+            <p><strong>Инструкция:</strong></p>
+            <p>Откройте приложение Google Authenticator на телефоне и введите 6-значный код, который отображается в приложении.</p>
+            <p>Код обновляется каждые 30 секунд.</p>
+        </div>
+        
+        <form method="POST" action="{{ url_for('mfa_verify') }}">
+            <div class="form-group">
+                <label for="token" style="display: block; margin-bottom: 10px; color: #555; font-weight: bold;">
+                    6-значный код:
+                </label>
+                <div class="mfa-input">
+                    <input type="text" 
+                           class="mfa-digit" 
+                           id="digit1" 
+                           maxlength="1" 
+                           pattern="\d" 
+                           required
+                           autofocus>
+                    <input type="text" class="mfa-digit" id="digit2" maxlength="1" pattern="\d" required>
+                    <input type="text" class="mfa-digit" id="digit3" maxlength="1" pattern="\d" required>
+                    <input type="text" class="mfa-digit" id="digit4" maxlength="1" pattern="\d" required>
+                    <input type="text" class="mfa-digit" id="digit5" maxlength="1" pattern="\d" required>
+                    <input type="text" class="mfa-digit" id="digit6" maxlength="1" pattern="\d" required>
+                    <input type="hidden" name="token" id="fullToken">
+                </div>
+            </div>
+            
+            <button type="submit" class="btn">Подтвердить вход</button>
+        </form>
+        
+        <div class="help-text">
+            <p>Если у вас нет доступа к приложению, используйте резервные коды или обратитесь к администратору.</p>
+        </div>
+        
+        <a href="{{ url_for('login') }}" class="back-link">← Вернуться к странице входа</a>
+    </div>
+    
+    <script>
+        // Элементы ввода
+        const digits = document.querySelectorAll('.mfa-digit');
+        const fullTokenInput = document.getElementById('fullToken');
+        const form = document.querySelector('form');
+        
+        // Функция для объединения цифр в полный токен
+        function combineDigits() {
+            let token = '';
+            digits.forEach(digit => {
+                token += digit.value;
+            });
+            fullTokenInput.value = token;
+            return token;
+        }
+        
+        // Автоматическое перемещение между полями
+        function autoFocusNext(current, nextId) {
+            if (current.value.length === 1) {
+                const nextElement = document.getElementById(nextId);
+                if (nextElement) {
+                    nextElement.focus();
+                }
+            }
+        }
+        
+        // Обработка нажатия Backspace
+        function handleBackspace(current, prevId) {
+            if (current.value.length === 0 && prevId) {
+                const prevElement = document.getElementById(prevId);
+                if (prevElement) {
+                    prevElement.focus();
+                }
+            }
+        }
+        
+        // Инициализация
+        document.addEventListener('DOMContentLoaded', function() {
+            // Настройка обработчиков для каждого поля
+            digits.forEach((digit, index) => {
+                digit.addEventListener('input', function(e) {
+                    // Разрешаем только цифры
+                    this.value = this.value.replace(/\D/g, '');
+                    
+                    // Автофокус на следующее поле
+                    if (this.value.length === 1 && index < digits.length - 1) {
+                        digits[index + 1].focus();
+                    }
+                    
+                    // Обновляем полный токен
+                    combineDigits();
+                });
+                
+                digit.addEventListener('keydown', function(e) {
+                    // Обработка Backspace
+                    if (e.key === 'Backspace' && this.value.length === 0 && index > 0) {
+                        digits[index - 1].focus();
+                    }
+                    
+                    // Автоматическая отправка при полном вводе
+                    if (index === digits.length - 1 && this.value.length === 1) {
+                        const fullToken = combineDigits();
+                        if (fullToken.length === 6) {
+                            // Небольшая задержка для UX
+                            setTimeout(() => {
+                                form.submit();
+                            }, 100);
+                        }
+                    }
+                });
+                
+                // Обработка вставки
+                digit.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedData = e.clipboardData.getData('text');
+                    const numbers = pastedData.replace(/\D/g, '');
+                    
+                    if (numbers.length === 6) {
+                        // Заполняем все поля
+                        for (let i = 0; i < 6; i++) {
+                            if (digits[i]) {
+                                digits[i].value = numbers[i] || '';
+                            }
+                        }
+                        combineDigits();
+                        
+                        // Автоотправка
+                        setTimeout(() => {
+                            form.submit();
+                        }, 100);
+                    }
+                });
+            });
+            
+            // Автофокус на первое поле
+            if (digits[0]) {
+                digits[0].focus();
+            }
+            
+            // Обработка отправки формы
+            form.addEventListener('submit', function(e) {
+                const token = combineDigits();
+                if (token.length !== 6) {
+                    e.preventDefault();
+                    alert('Пожалуйста, введите все 6 цифр кода');
+                    digits[0].focus();
+                }
+            });
+            
+            // Таймер обновления кода (визуальный)
+            let secondsLeft = 30;
+            const updateTimer = () => {
+                secondsLeft--;
+                if (secondsLeft <= 0) {
+                    secondsLeft = 30;
+                    // Визуальное указание на обновление кода
+                    document.querySelector('.help-text p').innerHTML = 
+                        'Код обновился! Введите новый код из приложения.';
+                    
+                    // Мигание полей ввода
+                    digits.forEach(digit => {
+                        digit.style.borderColor = '#ffc107';
+                        setTimeout(() => {
+                            digit.style.borderColor = '';
+                        }, 500);
+                    });
+                }
+            };
+            
+            setInterval(updateTimer, 1000);
+        });
+        
+        // Горячие клавиши
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+V для вставки полного кода
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+                e.preventDefault();
+                navigator.clipboard.readText().then(text => {
+                    const numbers = text.replace(/\D/g, '');
+                    if (numbers.length === 6) {
+                        for (let i = 0; i < 6; i++) {
+                            if (digits[i]) {
+                                digits[i].value = numbers[i] || '';
+                            }
+                        }
+                        combineDigits();
+                    }
+                });
+            }
+            
+            // Enter для отправки формы
+            if (e.key === 'Enter' && !e.target.classList.contains('mfa-digit')) {
+                const token = combineDigits();
+                if (token.length === 6) {
+                    form.submit();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

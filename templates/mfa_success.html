@@ -1,0 +1,159 @@
+<!-- templates/mfa_success.html -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFA успешно настроена</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        h1 {
+            color: #28a745;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .success-icon {
+            font-size: 60px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .message {
+            text-align: center;
+            color: #555;
+            margin-bottom: 30px;
+        }
+        
+        .backup-codes {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .backup-codes h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        
+        .code {
+            font-family: monospace;
+            font-size: 16px;
+            padding: 8px;
+            margin: 5px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            display: inline-block;
+        }
+        
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+            color: #856404;
+        }
+        
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            margin-top: 10px;
+        }
+        
+        .btn:hover {
+            background: #0056b3;
+        }
+        
+        .btn-print {
+            background: #28a745;
+        }
+        
+        .btn-print:hover {
+            background: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">✅</div>
+        <h1>MFA успешно настроена!</h1>
+        
+        <div class="message">
+            <p>Двухфакторная аутентификация теперь включена для вашей учетной записи.</p>
+        </div>
+        
+        <div class="warning">
+            <strong>⚠️ ВАЖНО:</strong> Сохраните эти резервные коды в безопасном месте.
+            Они понадобятся, если у вас не будет доступа к приложению аутентификации.
+        </div>
+        
+        <div class="backup-codes">
+            <h3>Ваши резервные коды:</h3>
+            {% for code in backup_codes %}
+                <div class="code">{{ code }}</div>
+            {% endfor %}
+        </div>
+        
+        <button onclick="window.print()" class="btn btn-print">
+            🖨️ Распечатать коды
+        </button>
+        
+        <a href="{{ url_for('index') }}" class="btn">
+            Перейти в панель управления
+        </a>
+    </div>
+    
+    <script>
+        // Копирование кодов в буфер обмена
+        function copyCodes() {
+            const codes = document.querySelectorAll('.code');
+            let text = '';
+            codes.forEach(code => {
+                text += code.textContent + '\n';
+            });
+            
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Коды скопированы в буфер обмена');
+            });
+        }
+        
+        // Предупреждение при закрытии страницы
+        window.onbeforeunload = function() {
+            return 'Вы сохранили резервные коды?';
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройка MFA</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .step {
+            display: none;
+        }
+        
+        .step.active {
+            display: block;
+        }
+        
+        .instructions {
+            background: #f0f8ff;
+            border-left: 4px solid #007bff;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .qr-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .qr-code {
+            max-width: 200px;
+            height: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background: white;
+        }
+        
+        .secret-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 16px;
+            text-align: center;
+            margin: 15px 0;
+            border: 1px dashed #ddd;
+            word-break: break-all;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 3px;
+            font-family: monospace;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            width: 100%;
+            padding: 14px;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .alert {
+            padding: 12px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-danger {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .alert-info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        
+        .nav-steps {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+            gap: 10px;
+        }
+        
+        .step-indicator {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-weight: bold;
+        }
+        
+        .step-indicator.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .step-line {
+            flex: 1;
+            height: 2px;
+            background: #ddd;
+            margin-top: 14px;
+        }
+        
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .debug-info {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Настройка двухфакторной аутентификации</h1>
+        
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+        
+        <div class="nav-steps">
+            <div class="step-indicator {% if step == 'setup' %}active{% endif %}">1</div>
+            <div class="step-line"></div>
+            <div class="step-indicator {% if step == 'verify' %}active{% endif %}">2</div>
+        </div>
+        
+        <!-- Шаг 1: Начало настройки -->
+        <div class="step {% if step == 'setup' %}active{% endif %}" id="stepSetup">
+            <div class="instructions">
+                <h3>📱 Подготовка</h3>
+                <p>Для настройки MFA вам потребуется:</p>
+                <ol>
+                    <li>Установить приложение <strong>Google Authenticator</strong> на телефон</li>
+                    <li>Или любое другое приложение для генерации TOTP кодов</li>
+                </ol>
+            </div>
+            
+            <form method="POST">
+                <input type="hidden" name="action" value="setup">
+                <button type="submit" class="btn btn-primary">
+                    Начать настройку →
+                </button>
+            </form>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <a href="{{ url_for('index') }}" style="color: #666; text-decoration: none;">
+                    ← Назад к панели управления
+                </a>
+            </div>
+        </div>
+        
+        <!-- Шаг 2: Настройка и проверка -->
+        <div class="step {% if step == 'verify' %}active{% endif %}" id="stepVerify">
+            <div class="instructions">
+                <h3>🔗 Привязка приложения</h3>
+                <p>Выполните следующие шаги:</p>
+                <ol>
+                    <li>Откройте приложение Authenticator</li>
+                    <li>Нажмите "Добавить аккаунт" или "+"</li>
+                    <li>Выберите "Сканировать QR-код"</li>
+                    <li>Наведите камеру на код ниже</li>
+                </ol>
+            </div>
+            
+            {% if qr_code %}
+            <div class="qr-container">
+                <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code" class="qr-code">
+            </div>
+            
+            <div class="secret-box">
+                {{ secret }}
+            </div>
+            
+            <p style="text-align: center; color: #666; margin-bottom: 20px;">
+                Или введите код вручную: <strong>{{ secret }}</strong>
+            </p>
+            {% endif %}
+            
+            <form method="POST">
+                <input type="hidden" name="action" value="verify">
+                {% if secret %}
+                <input type="hidden" name="secret" value="{{ secret }}">
+                {% endif %}
+                
+                <div class="form-group">
+                    <label for="token">Введите 6-значный код из приложения:</label>
+                    <input type="text" 
+                           id="token" 
+                           name="token" 
+                           maxlength="6" 
+                           pattern="\d{6}" 
+                           placeholder="123456"
+                           required 
+                           autofocus
+                           autocomplete="off">
+                </div>
+                
+                <div class="actions">
+                    <button type="button" class="btn btn-secondary" onclick="goToStep('setup')" style="flex: 1;">
+                        ← Назад
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="flex: 2;">
+                        Подтвердить и включить MFA
+                    </button>
+                </div>
+            </form>
+            
+            <div class="debug-info" style="display: none;">
+                <p><strong>Отладка:</strong> Для тестирования используйте секрет: {{ secret }}</p>
+                <p>Текущее время сервера: {{ current_time }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Переключение между шагами
+        function goToStep(stepName) {
+            document.querySelectorAll('.step').forEach(step => {
+                step.classList.remove('active');
+            });
+            document.getElementById('step' + stepName.charAt(0).toUpperCase() + stepName.slice(1)).classList.add('active');
+            
+            // Обновление индикаторов
+            document.querySelectorAll('.step-indicator').forEach(indicator => {
+                indicator.classList.remove('active');
+            });
+            
+            if (stepName === 'setup') {
+                document.querySelectorAll('.step-indicator')[0].classList.add('active');
+            } else {
+                document.querySelectorAll('.step-indicator')[1].classList.add('active');
+            }
+        }
+        
+        // Автоматическая отправка формы при вводе 6 цифр
+        const tokenInput = document.getElementById('token');
+        if (tokenInput) {
+            tokenInput.addEventListener('input', function(e) {
+                // Удаляем все не-цифры
+                this.value = this.value.replace(/\D/g, '');
+                
+                if (this.value.length === 6) {
+                    setTimeout(() => {
+                        this.form.submit();
+                    }, 300);
+                }
+            });
+            
+            // Запрещаем ввод не-цифр
+            tokenInput.addEventListener('keypress', function(e) {
+                if (!/\d/.test(e.key) && e.key !== 'Backspace' && e.key !== 'Delete') {
+                    e.preventDefault();
+                }
+            });
+        }
+        
+        // Показать/скрыть отладочную информацию
+        function toggleDebug() {
+            const debugInfo = document.querySelector('.debug-info');
+            debugInfo.style.display = debugInfo.style.display === 'none' ? 'block' : 'none';
+        }
+        
+        // Автоматически перейти к шагу verify если есть QR код
+        {% if qr_code and step == 'verify' %}
+        document.addEventListener('DOMContentLoaded', function() {
+            goToStep('verify');
+            if (tokenInput) {
+                tokenInput.focus();
+            }
+        });
+        {% endif %}
+    </script>
+</body>
+</html>
