@@ -120,8 +120,8 @@ https://img.shields.io/badge/Security-MFA%2520Enabled-red
 1. Клонирование репозитория
 bash
 
-git clone https://github.com/eternalsql733-arch/security-system.git
-cd security-system
+git clone https://github.com/eternalsql733-arch/System-Sequrity.git
+cd System-Sequrity
 
 2. Установка зависимостей
 bash
